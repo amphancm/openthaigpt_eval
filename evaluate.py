@@ -1,11 +1,13 @@
 
+import os
+import re
 import sys
+import pandas as pd
+
 sys.path.append("./models")
 from tqdm import tqdm
-import os
-import pandas as pd
-import re
-exam_path = './exams'
+
+exam_path      = './exams'
 answer_pattern = r"\([1-5]\)"
 
 # current date time
@@ -24,7 +26,7 @@ def check_answer(answer:str, sol:str):
     assert isinstance(sol, str)
     
     answer = answer.strip()
-    sol = sol.strip()
+    sol    = sol.strip()
     print(f"Model's answer > {answer}")
     print(f"Ground truth answer > {sol}")
     
@@ -52,7 +54,7 @@ def check_answer(answer:str, sol:str):
     sol_choice = str(search_sol.group())
     
     # Extract a choice from model's answer
-    search_answer = re.search(answer_pattern, answer)
+    search_answer  = re.search(answer_pattern, answer)
     if search_answer:
         ans_choice = str(search_answer.group())
         print(f"Answer Choice: {ans_choice}")
@@ -70,8 +72,8 @@ def main(init, inference, model_name, model_path_or_api_key=None):
     
     model_name_safe_filepath = model_name.replace("/", "_")
     
-    filename = f'outputs/{current_time}_{model_name_safe_filepath}_answer.tsv'
-    stat_filename = f'outputs/{current_time}_{model_name_safe_filepath}_stat.tsv'
+    filename              = f'outputs/{current_time}_{model_name_safe_filepath}_answer.tsv'
+    stat_filename         = f'outputs/{current_time}_{model_name_safe_filepath}_stat.tsv'
     stat_by_year_filename = f'outputs/{current_time}_{model_name_safe_filepath}_stat_by_year.tsv'
     
     if os.path.exists(filename):
@@ -82,7 +84,7 @@ def main(init, inference, model_name, model_path_or_api_key=None):
         is_existed = False
 
     # Answer file name
-    with open(filename, 'a') as f:
+    with open(filename, 'a', encoding="utf-8") as f:
         if (not is_existed):
             f.write("Exam name" + "\t"+ "Year" + "\t" + "Question No" + "\t" +  "Question" + "\t" + "Choices" + "\t" + "Model Answer" + "\t" + "Solution" + "\t" + "Is Correct?" + '\n')
             f.flush()
@@ -93,7 +95,7 @@ def main(init, inference, model_name, model_path_or_api_key=None):
         for name in exam_paths:
             if name[-4:] == ".csv":
                 print("Evaluating exam:", name)
-                num_correct = {}
+                num_correct  = {}
                 num_question = {}
                 df = pd.read_csv(os.path.join(os.getcwd(), exam_path, name))
 
@@ -105,19 +107,19 @@ def main(init, inference, model_name, model_path_or_api_key=None):
                         continue
                     
                     instruction = str(row.instruction).replace("\t"," ").strip()
-                    input = str(row.input).replace("\t"," ").strip()
-                    result = str(row.result).replace("\t"," ").strip()
+                    input       = str(row.input).replace("\t"," ").strip()
+                    result      = str(row.result).replace("\t"," ").strip()
                     
                     instruction = f"ตอบคำถามดังต่อไปนี้โดยการเลือกคำตอบตาม Choice ที่กำหนดให้เท่านั้น ไม่ต้องอธิบายเพิ่ม อาทิเช่น 'คำตอบที่ถูกต้องคือ (1)'\nคำถาม: {instruction}\nChoice: {input}"
-                    answer = inference(instruction)
-                    correct = check_answer(answer, result)
+                    answer      = inference(instruction)
+                    correct     = check_answer(answer, result)
                     
                     if year not in num_correct:
-                        num_correct[year] = 0
+                        num_correct[year]  = 0
                         num_question[year] = 0
                         
                     if ("_all" not in num_correct):
-                        num_correct["_all"] = 0
+                        num_correct["_all"]  = 0
                         num_question["_all"] = 0
                         
                     num_question[year] +=1
@@ -128,7 +130,6 @@ def main(init, inference, model_name, model_path_or_api_key=None):
                     f.write(str(name[:-4]) + "\t"+ str(year) + "\t" + str(row.no) + "\t" + instruction + "\t" + input + "\t" + answer + "\t" + str(row.result) + "\t" + str(correct) + '\n')
                     f.flush()
 
-            
             # Stat file name
             if os.path.exists(stat_filename):
                 print(f"'{stat_filename}' exists.")
@@ -182,10 +183,12 @@ if __name__ == "__main__":
         "claude-3-opus-20240229":"claude",
         "claude-3-sonnet-20240229":"claude",
         "claude-3-haiku-20240307":"claude",
-        "typhoon-instruct":"typhoongpt",
+        "typhoon-v1.5x-70b-instruct":"typhoongpt",
         "gpt-3.5-turbo":"openai",
         "gpt-4":"openai",
-        "gemini-pro-1.5":"gemini"
+        "meta/llama-3.1-405b-instruct":"nvidia",
+        "gemini-pro-1.5":"gemini",
+        "meta/Llama-3.2-3B-Instruct":"llama3x_3B_hf",
     }
     
     if len(sys.argv) < 2 or len(sys.argv) > 3:
@@ -233,6 +236,10 @@ if __name__ == "__main__":
         from models.openai import init, inference
     elif (model_class == "gemini"):
         from models.gemini import init, inference
+    elif (model_class == "nvidia"):
+        from models.nvidia import init, inference 
+    elif (model_class == "llama3x_3B_hf"):
+        from models.llama3x_3B_hf import init, inference       
     
     # Check exam path
     if (not os.path.exists(exam_path)):
@@ -245,5 +252,6 @@ if __name__ == "__main__":
     for name in exam_paths:
         if name[-4:] == ".csv":
             print("Found exam:", name)
-            
+
+    print(init)        
     main(init, inference, model_name, model_path_or_api_key)
