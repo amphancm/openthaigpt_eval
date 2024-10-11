@@ -9,8 +9,21 @@ print(f"Using device: {device}")
 def init(model_name, model_path=None):
     global tokenizer
     global model
-    tokenizer = AutoTokenizer.from_pretrained(model_path or model_name, trust_remote_code=True)
-    model     = AutoModelForCausalLM.from_pretrained(model_path or model_name, trust_remote_code=True, torch_dtype=torch.float16)
+    
+    model     = AutoModelForCausalLM.from_pretrained(
+        model_path or model_name, 
+        trust_remote_code=True, 
+        torch_dtype=torch.float16,
+        device_map="auto",
+        attn_implementation="eager",)
+    
+    PAD_TOKEN = "<|pad|>"
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path or model_name, 
+        trust_remote_code=True)
+    tokenizer.pad_token_id = tokenizer.eos_token_id
+    tokenizer.add_special_tokens({"pad_token": PAD_TOKEN})
 
     # Move model to CUDA device
     model.to(device)
