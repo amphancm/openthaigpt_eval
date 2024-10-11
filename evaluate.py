@@ -189,6 +189,7 @@ if __name__ == "__main__":
         "meta/llama-3.1-405b-instruct":"nvidia",
         "gemini-pro-1.5":"gemini",
         "meta/Llama-3.2-3B-Instruct":"llama3x_3B_hf",
+        "meta/Llama-3.2-1B-Instruct":"llama3x_1B_hf",
     }
     
     if len(sys.argv) < 2 or len(sys.argv) > 3:
@@ -239,7 +240,9 @@ if __name__ == "__main__":
     elif (model_class == "nvidia"):
         from models.nvidia import init, inference 
     elif (model_class == "llama3x_3B_hf"):
-        from models.llama3x_3B_hf import init, inference       
+        from models.llama3x_3B_hf import init, inference
+    elif (model_class == "llama3x_1B_hf"):
+        from models.llama3x_1B_hf import init, inference            
     
     # Check exam path
     if (not os.path.exists(exam_path)):
